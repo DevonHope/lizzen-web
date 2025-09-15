@@ -83,9 +83,35 @@ README.md           (This file)
 ## Prerequisites
 
 - Node.js 18+ (recommended LTS) for both backend & frontend
-- Prowlarr running locally: `http://localhost:9696` with API key configured in backend (currently hardcoded in `index.js` -> PROWLARR_CONFIG)
+- Prowlarr running locally: `http://localhost:9696` with API key configured in backend via environment variable (`backend/.env` → `PROWLARR_API_KEY`)
 - Internet access to MusicBrainz & Cover Art Archive
 - (Optional) Nginx + certbot if deploying with real domain (`setup-ssl.sh` script)
+
+---
+## Install/Deploy (one-step script)
+
+For a fresh Debian/Ubuntu server, use the included installer to set up everything end-to-end:
+
+```
+cd /path/to/lizzen-web
+chmod +x install.sh
+sudo ./install.sh --domain your.domain --with-ssl
+```
+
+What it does:
+- Installs Node.js (v20.x), git, and basics
+- Backend: installs deps, creates systemd service `lizzen-backend` on port 3001
+- Frontend: installs deps, builds, and deploys to `/var/www/lizzen-web/frontend`
+- Nginx: serves the frontend and proxies `/api` to the backend (optional)
+- SSL: runs certbot if `--with-ssl` and DNS already points to the host (optional)
+
+Flags / env overrides:
+- `--user NAME` (service user), `--root PATH` (repo path), `--domain NAME`, `--port N`, `--no-nginx`, `--with-ssl`
+
+Post-install:
+- Update secrets in `backend/.env` (e.g., `PROWLARR_API_KEY`)
+- Check service: `sudo journalctl -u lizzen-backend -f`
+- Re-run the script with `--no-nginx` if you manage web serving elsewhere
 
 ---
 ## Quick Start (Development)
@@ -111,17 +137,17 @@ npm run dev
 ---
 ## Environment / Configuration
 
-Currently, most config is in code (backend `index.js`). For production harden by moving to environment variables:
+Backend supports environment variables (see `backend/.env.example`):
 
-Variable | Purpose | Current Hardcoded Source
+Variable | Purpose | Source
 ---------|---------|-------------------------
-PROWLARR_API_KEY | Auth for Prowlarr | PROWLARR_CONFIG.apiKey
-PROWLARR_BASE_URL | Prowlarr API root | PROWLARR_CONFIG.baseUrl
+PROWLARR_API_KEY | Auth for Prowlarr | backend/.env (PROWLARR_API_KEY)
+PROWLARR_BASE_URL | Prowlarr API root | backend/.env (PROWLARR_BASE_URL)
 MUSICBRAINZ_USER_AGENT | API etiquette | MUSICBRAINZ_CONFIG.userAgent
 PORT | Backend port | process.env.PORT || 3001
 APP_DOMAIN | External domain | MUSICBRAINZ_CONFIG.domain
 
-Create a `.env` (backend) and load via a library like `dotenv` for production.
+Create a `.env` in `backend/` from `.env.example` and set required values. Keep `.env` out of version control.
 
 ---
 ## Building for Production
@@ -240,7 +266,7 @@ Get preloaded album torrents | GET `/api/artist-torrents/:artistId`
 ---
 ## Security Notes (Current Gaps)
 
-- API key hardcoded in repo (move to env var before publishing!)
+- Ensure API keys live in `backend/.env` only (never commit `.env`)
 - No auth layer or rate limiting
 - No HTTPS enforcement in backend (rely on reverse proxy)
 - In‑memory only (loss on restart)
