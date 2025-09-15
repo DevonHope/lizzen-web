@@ -3,6 +3,8 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import cors from 'cors';
 import WebTorrent from 'webtorrent';
+// Read environment variables if provided (no-op if not using a .env loader)
+// If you later add `dotenv`, you can switch to: `import 'dotenv/config'`
 
 const app = express();
 app.use(express.json());
@@ -42,10 +44,14 @@ setInterval(() => {
 
 // Configuration
 const PROWLARR_CONFIG = {
-  apiKey: '137b42b4e22c44309e12faed42b9b4c0',
-  baseUrl: 'http://localhost:9696/api/v1', // Prowlarr default port
+  apiKey: process.env.PROWLARR_API_KEY || '',
+  baseUrl: process.env.PROWLARR_BASE_URL || 'http://localhost:9696/api/v1', // Prowlarr default port
   musicCategories: [3000, 3010, 3020, 3030, 3040] // Music categories as array of numbers
 };
+
+if (!PROWLARR_CONFIG.apiKey) {
+  console.warn('⚠️ PROWLARR_API_KEY is not set. Prowlarr requests will fail until you configure it.');
+}
 
 const MUSICBRAINZ_CONFIG = {
   baseUrl: 'https://musicbrainz.org/ws/2',
